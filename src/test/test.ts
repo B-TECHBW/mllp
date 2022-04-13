@@ -5,6 +5,8 @@ import * as net from 'net'
 var fs = require('fs')
 
 describe('MllpServer initialized with port and host', function () {
+    this.timeout(40000);
+
     let hl7: string = '';
     let server: MllpServer;
 
@@ -65,6 +67,30 @@ describe('MllpServer initialized with port and host', function () {
         it('receives an error response', () => {
             assert.isNotNull(error);
             assert.equal(data, null);
+        });
+    });
+
+    describe('should handle empty payload', function () {
+        var error: any;
+        var data: any;
+        let server2: MllpServer;
+
+        // Sending
+        beforeEach((done) => {
+            server2 = new MllpServer('127.0.0.1', 1236)
+            server2.listen()
+            
+            server2.send('127.0.0.1', 1236, '', (err: any, ackData: any) => {
+                error = err;
+                data = ackData;
+                done();
+            });
+        });
+
+        // Receiving
+        it('receives an AE message', () => {
+            assert.isNull(error);
+            assert.equal(data, "MSA|AE|");
         });
     });
 
