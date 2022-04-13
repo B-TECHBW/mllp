@@ -92,6 +92,10 @@ describe('MllpServer initialized with port and host', function () {
             assert.isNull(error);
             assert.equal(data, "MSA|AE|");
         });
+        
+        after((done)=>{
+            server2.close(done)
+        })
     });
 
     describe("should send a large A08 Message and recieve an ACK back", () => {
