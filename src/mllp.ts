@@ -1,3 +1,4 @@
+import { Socket } from 'dgram';
 import * as net from 'net'
 import { TypedEmitter } from 'tiny-typed-emitter';
 
@@ -35,6 +36,7 @@ export class MllpServer extends TypedEmitter<MllpEvents> {
     host: string
     logger: any
     server: net.Server
+    message: string;
 
     static readonly VT = String.fromCharCode(0x0b);
     static readonly FS = String.fromCharCode(0x1c);
@@ -45,33 +47,23 @@ export class MllpServer extends TypedEmitter<MllpEvents> {
 
         this.host = host || '127.0.0.1'
         this.port = port || 6969
-        this.logger = logger || console;
-
+        this.logger = logger || console
+        this.message = ''
         this.server = net.createServer(this.serverListener.bind(this))
-
     }
 
     private serverListener(sock: net.Socket) {
         this.logger.info('CONNECTED: ' + sock.remoteAddress + ':' + sock.remotePort);
 
         sock.on('data', (data: any) => {
-            let { msg, ack } = this.handleData(data.toString())
+            data = data.toString()
+            this.logger.info("DATA:\nfrom " + sock.remoteAddress + ':\n' + data.split("\r").join("\n"));
 
-            /**
-             * MLLP HL7 Event. Fired when a HL7 Message is received.
-             * @event MllpServer#hl7
-             * @type {string}
-             * @property {string} message string containing the HL7 Message (see example below)
-             * @example MSH|^~\&|XXXX|C|SOMELAB|SOMELAB|20080511103530||ORU^R01|Q335939501T337311002|P|2.3|||
-             */
-            this.emit('hl7', msg);
-
-            sock.write(MllpServer.VT + this.ackn(ack, "AA") + MllpServer.FS + MllpServer.CR);
+            this.handleData(data.toString(), sock)
         })
         sock.on('close', (data) => {
             this.logger.info('CLOSED: ' + sock.remoteAddress + ' ' + sock.remotePort);
         });
-
     }
 
     private ackn(data: any, ack_type: string): string {
@@ -99,24 +91,31 @@ export class MllpServer extends TypedEmitter<MllpEvents> {
         return result;
     }
 
-    private handleData(msg: string) {
-        let message: string = ''
-        let ackData: any
-
+    private handleData(msg: string, sock: net.Socket) {
         //strip separators
         if (msg.indexOf(MllpServer.VT) > -1) {
-            message = '';
+            this.message = '';
         }
 
-        message += msg.replace(MllpServer.VT, '');
+        this.message += msg.replace(MllpServer.VT, '');
 
         if (msg.indexOf(MllpServer.FS + MllpServer.CR) > -1) {
-            message = message.replace(MllpServer.FS + MllpServer.CR, '');
-            ackData = hl7.parseString(message);
-            this.logger.info("Message:\r\n" + message + "\r\n\r\n");
-        }
+            this.message = this.message.replace(MllpServer.FS + MllpServer.CR, '');
+            let ackData: any = hl7.parseString(this.message);
+            this.logger.info("Message:\r\n" + this.message + "\r\n\r\n");
 
-        return { msg: message, ack: ackData };
+            /**
+             * MLLP HL7 Event. Fired when a full HL7 Message is received.
+             * @event MllpServer#hl7
+             * @type {string}
+             * @property {string} message string containing the HL7 Message (see example below)
+             * @example MSH|^~\&|XXXX|C|SOMELAB|SOMELAB|20080511103530||ORU^R01|Q335939501T337311002|P|2.3|||
+             */
+            this.emit('hl7', this.message);
+            let ack = this.ackn(ackData, "AA")
+
+            sock.write(MllpServer.VT + ack + MllpServer.FS + MllpServer.CR);
+        }
     }
 
     send(receivingHost: string, receivingPort: number, hl7Data: any, callback: Function) {

@@ -1,6 +1,6 @@
 {
-  "name": "@b-techbw/mllp",
-  "version": "3.1.0",
+  "name": "@i-tech-uw/mllp-server",
+  "version": "3.3.1-alpha.0",
   "description": "MLLP (HL7) implementation in Node.js",
   "main": "lib/mllp.js",
   "types": "lib/mllp.d.ts",
@@ -16,10 +16,10 @@
   },
   "author": "Piotr Mankowski pmanko@uw.edu>",
   "repository": {
-    "url": "git://github.com/b-techbw/mllp.git"
+    "url": "git://github.com/i-tech-uw/mllp-server.git"
   },
   "bugs": {
-    "url": "https://github.com/b-techbw/mllp/issues"
+    "url": "https://github.com/i-tech-uw/mllp-server/issues"
   },
   "mocha": {
     "require": [
@@ -48,8 +48,5 @@
   "dependencies": {
     "hl7": "1.x.x",
     "tiny-typed-emitter": "^2.1.0"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
   }
 }
